@@ -1,2 +1,2 @@
 main:
-	gcc lodepng.h 1course.c -o analyzer
+	gcc -o 1course lodepng.c 1course.c

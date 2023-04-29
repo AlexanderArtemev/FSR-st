@@ -1,15 +1,16 @@
-#include "lodepng.h"
+#include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
+#include "lodepng.h"
 
+int i, j;
 
 char* loadPng(const char* filename, int* width, int* height) {
   
   unsigned char* image = NULL;
-  unsigned int width, height;
 
   int error = lodepng_decode32_file(&image, width, height, filename);
-  if(error) 
-  {
+  if(error){
     printf("error %u: %s\n", error, lodepng_error_text(error));
   }
   
@@ -17,59 +18,86 @@ char* loadPng(const char* filename, int* width, int* height) {
 }
 
 
-
 void writePng(const char* filename, const unsigned char* image, unsigned width, unsigned height) {
   unsigned char* png;
-  int pngsize;
+  long unsigned int pngsize;
 
   int error = lodepng_encode32(&png, &pngsize, image, width, height);
-  if(!error) {
-    lodepng_save_file(png, pngsize, filename);
-  }
-
-  /*if there's an error, display it*/
+  lodepng_save_file(png, pngsize, filename);
   if(error) printf("error %u: %s\n", error, lodepng_error_text(error));
 
   free(png);
 }
 
-void get_pixel(int x, int y, int *r, int *g, int *b, int *a, char* image, int width ) 
-{
+void pre(unsigned char *omat, int h, int w){
+    for(i=2;i<h-1;i++)
+        for(j=2;j<w-1;j++){
+            if(omat[w*i+j]<100)
+                omat[w*i+j]=0;
+            if(omat[w*i+j]>160)
+                omat[w*i+j]=255;
+        }
+    return;
+}
 
-   *r =  image[4 * width * y + 4 * x + 0]; 
-   *g =  image[4 * width * y + 4 * x + 1]; 
-   *b =  image[4 * width * y + 4 * x + 2]; 
-   *a =  image[4 * width * y + 4 * x + 3];
-   
+void Gauss(unsigned char *omat, unsigned char *d, int h, int w){
+     for(i=2;i<h-1;i++)
+        for(j=2;j<w-1;j++){
+            d[w*i+j]=0.12*omat[w*i+j]+0.12*omat[w*(i+1)+j]+0.12*omat[w*(i-1)+j];
+            d[w*i+j]=d[w*i+j]+0.12*omat[w*i+(j+1)]+0.12*omat[w*i+(j-1)];
+            d[w*i+j]=d[w*i+j]+0.09*omat[w*(i+1)+(j+1)]+0.09*omat[w*(i+1)+(j-1)];
+            d[w*i+j]=d[w*i+j]+0.09*omat[w*(i-1)+(j+1)]+0.09*omat[w*(i-1)+(j-1)];
+        }
    return;
 }
+
+void color(unsigned char *dmat, unsigned char *mpicture, int h, int w){
+    int mat[w*h];
+    for(i=0;i<w*h;i++)
+        mat[i]=dmat[i];
+    for(i=1;i<w*h;i++) {
+        mpicture[i*3]=80+mat[i]+0.5*mat[i-1];
+        mpicture[i*3+1]=45+mat[i];
+        mpicture[i*3+2]=150+mat[i];
+        mpicture[i*3+3]=255;
+    }
+    return;
+}
+
 
 int main() {
 
     char * filename = "skull.png";
     int w, h;
+    int k=0;
     char * picture = loadPng(filename, &w, &h);
     if (picture == NULL){
         printf("I can not read the picture from the file %s. Error.\n", filename);
         return -1;
     }
-    
-    // read file and convert it to 2D array
-        // function get_pixel is simple
-    for (int i = 0; i < w; i++){
-        for (int j = 0; j < h; j++){
-            int r, g, b, a;
-            get_pixel(i, j, &r, &g, &b, &a, picture, w);
-        }
+
+
+    unsigned char *opicture=(unsigned char*)malloc(h*w*sizeof(unsigned char));
+    unsigned char *dpicture=(unsigned char*)malloc(h*w*sizeof(unsigned char));
+    unsigned char *mpicture=(unsigned char*)malloc(h*w*3*sizeof(unsigned char));
+
+    for(i=0;i<h*w*3;i=i+3){
+         opicture[k]=0.299*picture[i]+0.587*picture[i+1]+0.114*picture[i+2];
+         k++;
     }
 
-    // analyze 2D array
-        // use graph connectivity algorithm for connectivity areas
+    pre(opicture, h, w);
+    Gauss(opicture, dpicture, h, w);
+    color(dpicture, mpicture, h, w);
+    
 
-    // convert 2D array to file and write it
-    char * new_image = "scull-modified.png";
-    writePng(new_image, picture, w, h);
-
+    char * new_image = "skull-modified.png";
+    writePng(new_image, mpicture, w, h);
+    free(opicture);
+    free(dpicture);
+    free(mpicture);
+    free(picture);
+    return 0;
 }
 
 
