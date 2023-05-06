@@ -32,9 +32,9 @@ void writePng(const char* filename, const unsigned char* image, unsigned width, 
 void pre(unsigned char *omat, int h, int w){
     for(i=2;i<h-1;i++)
         for(j=2;j<w-1;j++){
-            if(omat[w*i+j]<100)
+            if(omat[w*i+j]<65)
                 omat[w*i+j]=0;
-            if(omat[w*i+j]>160)
+            if(omat[w*i+j]>187)
                 omat[w*i+j]=255;
         }
     return;
@@ -52,14 +52,11 @@ void Gauss(unsigned char *omat, unsigned char *d, int h, int w){
 }
 
 void color(unsigned char *dmat, unsigned char *mpicture, int h, int w){
-    int mat[w*h];
-    for(i=0;i<w*h;i++)
-        mat[i]=dmat[i];
     for(i=1;i<w*h;i++) {
-        mpicture[i*3]=80+mat[i]+0.5*mat[i-1];
-        mpicture[i*3+1]=45+mat[i];
-        mpicture[i*3+2]=150+mat[i];
-        mpicture[i*3+3]=255;
+        mpicture[i*4]=57+0.95*dmat[i]+0.8275*dmat[i-1];
+        mpicture[i*4+1]=115+dmat[i];
+        mpicture[i*4+2]=90+dmat[i];
+        mpicture[i*4+3]=195;
     }
     return;
 }
@@ -79,16 +76,18 @@ int main() {
 
     unsigned char *opicture=(unsigned char*)malloc(h*w*sizeof(unsigned char));
     unsigned char *dpicture=(unsigned char*)malloc(h*w*sizeof(unsigned char));
-    unsigned char *mpicture=(unsigned char*)malloc(h*w*3*sizeof(unsigned char));
+    unsigned char *mpicture=(unsigned char*)malloc(h*w*4*sizeof(unsigned char));
 
-    for(i=0;i<h*w*3;i=i+3){
-         opicture[k]=0.299*picture[i]+0.587*picture[i+1]+0.114*picture[i+2];
+    for(i=0;i<h*w*4;i=i+4){
+      //299 587 114
+         opicture[k]=0.335*picture[i]+0.610*picture[i+1]+0.200*picture[i+2];
          k++;
     }
 
     pre(opicture, h, w);
     Gauss(opicture, dpicture, h, w);
     color(dpicture, mpicture, h, w);
+  
     
 
     char * new_image = "skull-modified.png";
